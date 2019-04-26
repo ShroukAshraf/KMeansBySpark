@@ -43,39 +43,11 @@ public class KMeansClustering {
         }
 
 
-
-       //    Map each datapoint to a (datapoint, list of centroids) pair
-       JavaPairRDD<DataTuple, List<CentroidDataTuple>> dataPointsWithCentroids = datapoints.mapToPair(
-                new PairFunction<DataTuple, DataTuple, List<CentroidDataTuple>>() {
-            public Tuple2<DataTuple, List<CentroidDataTuple>> call(DataTuple x) {
-                return new Tuple2(x, centroids);
-            }
-        });
+        // mapping each datatuple to centroid
+        JavaPairRDD <CentroidDataTuple, Tuple2<DataTuple,Integer>> mappedDataPoints = datapoints.mapToPair(new Mapper(centroids));
 
 
-
-        JavaPairRDD <CentroidDataTuple, Tuple2<DataTuple,Integer>> mappedDataPoints = dataPointsWithCentroids.mapToPair(
-                new PairFunction<Tuple2<DataTuple, List<CentroidDataTuple>>,
-                        CentroidDataTuple, Tuple2<DataTuple,Integer>>() {
-            public Tuple2<CentroidDataTuple, Tuple2<DataTuple, Integer>> call(Tuple2<DataTuple, List<CentroidDataTuple>> x) {
-                CentroidDataTuple closestCentroid = null;
-                double closestDistance = Double.MAX_VALUE;
-                for (CentroidDataTuple centroid : x._2){
-                    double currentDistance = x._1.computeDistance(centroid);
-                    if (currentDistance < closestDistance) {
-                        closestCentroid = centroid;
-                        closestDistance = currentDistance;
-                    }
-                }
-                return new Tuple2<>(closestCentroid, new Tuple2<>(x._1,1));
-            }
-        });
-
-
-        mappedDataPoints.foreach(data -> {
-            System.out.println("centroid="+data._1.toString() + " data tuple=" + data._2.toString());
-        });
-
+       //summing all the values of the datatuples and counting the number of tuples for each centroid
         JavaPairRDD<CentroidDataTuple, Tuple2<DataTuple,Integer>> summedCentroids = mappedDataPoints.reduceByKey(
                 new Function2<Tuple2<DataTuple,Integer>, Tuple2<DataTuple,Integer>, Tuple2<DataTuple, Integer>>() {
            public Tuple2<DataTuple, Integer> call(Tuple2<DataTuple,Integer> x, Tuple2<DataTuple,Integer> y) {
@@ -84,10 +56,7 @@ public class KMeansClustering {
            }
         });
 
-        summedCentroids.foreach(data -> {
-            System.out.println("centroid="+data._1.toString() + " summed data tuple=" + data._2.toString());
-        });
-
+        //calculating the new centroids by averaging the datatuples for each centroid
         JavaRDD<CentroidDataTuple> newCentroids = summedCentroids.map(new Function<Tuple2<CentroidDataTuple, Tuple2<DataTuple, Integer>>,
                 CentroidDataTuple>() {
             @Override
@@ -101,33 +70,7 @@ public class KMeansClustering {
             System.out.println("centroid="+data.toString());
         });
         //the new assignment for centroids
-//        centroids = newCentroids.collect();
-
-
-
-
-//        JavaPairRDD<>
-//        // ReduceByKey to count the occurrences of each word
-//        JavaPairRDD<String, Integer> counts = ones.reduceBy
-//Key(new Function2<Integer, Integer, Integer>() {
-//            public Integer call(Integer x, Integer y) {
-//                return x + y;
-//            }
-//        });
-
-        // Save the word count back out to a text file, causing evaluation.
-
-
-
-
-
-
-
-
-
-
-
-
+       centroids = newCentroids.collect();
 
     }
 }
