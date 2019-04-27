@@ -6,8 +6,8 @@ import java.util.List;
 public class Mapper implements PairFunction<DataTuple,
         CentroidDataTuple, Tuple2<DataTuple,Integer>> {
 
-    List<CentroidDataTuple> centroids;
-    public  Mapper(List<CentroidDataTuple> centroids) {
+    private List<CentroidDataTuple> centroids;
+    Mapper(List<CentroidDataTuple> centroids) {
         this.centroids = centroids;
     }
     @Override
@@ -21,6 +21,6 @@ public class Mapper implements PairFunction<DataTuple,
                 closestDistance = currentDistance;
             }
         }
-        return new Tuple2<>(closestCentroid, new Tuple2<>(dataTuple,1));
+        return new Tuple2<>(closestCentroid, new Tuple2<>(dataTuple, 1));
     }
 }
