@@ -1,9 +1,10 @@
-import java.util.*;
-import java.io.*;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class Evaluator {
 
@@ -11,12 +12,11 @@ public class Evaluator {
 
     }
 
-	private static Map<DataTuple, String> readGroundTruthData(String groundTruthPath, FileSystem fileSystem) {
+	private static Map<DataTuple, String> readGroundTruthData(String groundTruthPath) {
 		// Populate map of <data_tuple, label> from ground truth dataset
 		Map<DataTuple, String> groundTruthMap = new HashMap<>();
 		try {
-			InputStreamReader inputStreamReader = new InputStreamReader(fileSystem.open(new Path(groundTruthPath)));
-			BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+			BufferedReader bufferedReader = new BufferedReader(new FileReader(groundTruthPath));
 			String line = bufferedReader.readLine();
 			while (line != null) {
 				String features = line.substring(0, line.lastIndexOf(','));
@@ -32,16 +32,18 @@ public class Evaluator {
 		return groundTruthMap;
 	}
 
-	private static Map<CentroidDataTuple, List<DataTuple>> readOutputClusters(String outputPath, FileSystem fileSystem) {
+	private static Map<CentroidDataTuple, List<DataTuple>> readOutputClusters(String outputPath) {
 		Map<CentroidDataTuple, List<DataTuple>> clusters = new HashMap<>();
 		try {
-			InputStreamReader inputStreamReader = new InputStreamReader(fileSystem.open(new Path(outputPath)));
-			BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+			BufferedReader bufferedReader = new BufferedReader(new FileReader(outputPath));
 			String line = bufferedReader.readLine();
 			while (line != null) {
-				String[] splits = line.split("\\t");
-				CentroidDataTuple centroid = new CentroidDataTuple(splits[0], new EuclideanCalculator());
-				DataTuple sample = new DataTuple(splits[1], new EuclideanCalculator());
+			    String[] splits = line.split("\\(");
+                assert splits.length == 3;
+                String centroidFeatures = splits[1].substring(0, splits[1].lastIndexOf(','));
+                String dataPointFeatures = splits[2].substring(0, splits[2].lastIndexOf(','));
+				CentroidDataTuple centroid = new CentroidDataTuple(centroidFeatures, new EuclideanCalculator());
+				DataTuple sample = new DataTuple(dataPointFeatures, new EuclideanCalculator());
 				if (!clusters.containsKey(centroid)) {
 					clusters.put(centroid, new ArrayList<>());
 				}
@@ -70,10 +72,10 @@ public class Evaluator {
 	}
 	
     // Evaluates the clustering accuracy of the given result of the clustering algo compared to the ground truth
-    public static void evaluate(String groundTruthPath, String outputPath, FileSystem fileSystem) {
+    public static void evaluate(String groundTruthPath, String outputPath) {
 		
-		Map<DataTuple, String> groundTruthMap = readGroundTruthData(groundTruthPath, fileSystem);
-		Map<CentroidDataTuple, List<DataTuple>> clusters = readOutputClusters(outputPath, fileSystem);
+		Map<DataTuple, String> groundTruthMap = readGroundTruthData(groundTruthPath);
+		Map<CentroidDataTuple, List<DataTuple>> clusters = readOutputClusters(outputPath);
 
 		int totalSamples = 0;
 		int totalMisclassified = 0;

@@ -108,4 +108,8 @@ hs_err_pid*
 
 *.txt
 
+# Ignore all logs
 log*
+
+# Ignore any output folders
+output*
